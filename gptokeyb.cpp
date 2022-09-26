@@ -103,7 +103,7 @@ std::vector<config_option> parseConfigFile(const char* path)
 static int uinp_fd = -1;
 struct uinput_user_dev uidev;
 
-bool kill_advmame = false;
+bool emit_buttons = false;
 bool kill_mode = false;
 bool sudo_kill = false; //allow sudo kill instead of killall for non-emuelec systems
 bool pckill_mode = false; //emit alt+f4 to close apps on pc during kill mode, if env variable is set
@@ -1184,18 +1184,18 @@ void emit(int type, int code, int val)
 void emitButton(int code, bool is_pressed, int modifier = 0)
 {
   if (!(modifier == 0) && is_pressed) {
-    emit(EV_SYN, modifier, is_pressed ? 1 : 0);
+    emit(EV_ABS, modifier, is_pressed ? 1 : 0);
     emit(EV_SYN, SYN_REPORT, 0);
   }
-  emit(EV_SYN, code, is_pressed ? 1 : 0);
+  emit(EV_ABS, code, is_pressed ? 1 : 0);
   emit(EV_SYN, SYN_REPORT, 0);
   if (!(modifier == 0) && !(is_pressed)) {
-    emit(EV_SYN, modifier, is_pressed ? 1 : 0);
+    emit(EV_ABS, modifier, is_pressed ? 1 : 0);
     emit(EV_SYN, SYN_REPORT, 0);
   }
 }
 
-void pressButton(int code, int duration = 50) {
+void pressButton(int code, int duration = 30) {
   emitButton(code,true,0);
   SDL_Delay(duration);
   emitButton(code,false,0);  
@@ -1656,14 +1656,14 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             break;
         }
          if ((kill_mode) && (state.start_pressed && state.hotkey_pressed)) {
-           if (kill_advmame) {
+           if (emit_buttons) {
              pressButton(SDL_CONTROLLER_BUTTON_LEFTSTICK);
              SDL_Delay(100);
              pressButton(SDL_CONTROLLER_BUTTON_DPAD_UP);
              SDL_Delay(100);
              pressButton(SDL_CONTROLLER_BUTTON_B);
              SDL_Delay(1000);
-             exit(0);
+             return true;
            }
           if (pckill_mode) {
             emitKey(KEY_F4,true,KEY_LEFTALT);
@@ -1996,6 +1996,15 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             break;
         } //switch
         if ((kill_mode) && (state.start_pressed && state.hotkey_pressed)) {
+          if (emit_buttons) {
+            pressButton(SDL_CONTROLLER_BUTTON_LEFTSTICK);
+            SDL_Delay(100);
+            pressButton(SDL_CONTROLLER_BUTTON_DPAD_UP);
+            SDL_Delay(100);
+            pressButton(SDL_CONTROLLER_BUTTON_B);
+            SDL_Delay(1000);
+            return true;
+          }          
           if (pckill_mode) {
             emitKey(KEY_F4,true,KEY_LEFTALT);
             SDL_Delay(15);
@@ -2371,8 +2380,6 @@ int main(int argc, char* argv[])
       if (ii + 1 < argc) { 
         kill_mode = true;
         AppToKill = argv[++ii];
-        if (strcmp(AppToKill, "advmame") == 0)
-          kill_advmame = true;
       }
     } else if ((strcmp(argv[ii], "-sudokill") == 0)) {
       if (ii + 1 < argc) { 
@@ -2383,8 +2390,10 @@ int main(int argc, char* argv[])
           app_exult_adjust = true;
         }
       }
-      
-    } 
+    } else if (strcmp(argv[ii], "emit") == 0) {
+      emit_buttons = true;
+      ++ii;
+    }
   }
 
   // Add textinput_interactive mode, check for extra options via environment variable if available
