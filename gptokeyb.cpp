@@ -1181,26 +1181,6 @@ void emit(int type, int code, int val)
   write(uinp_fd, &ev, sizeof(ev));
 }
 
-void emitButton(int code, bool is_pressed, int modifier = 0)
-{
-  if (!(modifier == 0) && is_pressed) {
-    emit(EV_ABS, modifier, is_pressed ? 1 : 0);
-    emit(EV_SYN, SYN_REPORT, 0);
-  }
-  emit(EV_ABS, code, is_pressed ? 1 : 0);
-  emit(EV_SYN, SYN_REPORT, 0);
-  if (!(modifier == 0) && !(is_pressed)) {
-    emit(EV_ABS, modifier, is_pressed ? 1 : 0);
-    emit(EV_SYN, SYN_REPORT, 0);
-  }
-}
-
-void pressButton(int code, int duration = 30) {
-  emitButton(code,true,0);
-  SDL_Delay(duration);
-  emitButton(code,false,0);  
-}
-
 void emitKey(int code, bool is_pressed, int modifier = 0)
 {
   if (!(modifier == 0) && is_pressed) {
@@ -1213,6 +1193,70 @@ void emitKey(int code, bool is_pressed, int modifier = 0)
     emit(EV_KEY, modifier, is_pressed ? 1 : 0);
     emit(EV_SYN, SYN_REPORT, 0);
   }
+}
+
+
+void emitAxisMotion(int code, int value)
+{
+  emit(EV_ABS, code, value);
+  emit(EV_SYN, SYN_REPORT, 0);
+}
+
+void emitButton(int sdlCode, bool is_pressed)
+{  
+  switch (sdlCode) {
+    case SDL_CONTROLLER_BUTTON_A:
+      emitKey(BTN_A, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_B:
+      emitKey(BTN_B, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_X:
+      emitKey(BTN_X, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_Y:
+      emitKey(BTN_Y, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+      emitKey(BTN_TL, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+      emitKey(BTN_TR, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+      emitKey(BTN_THUMBL, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+      emitKey(BTN_THUMBR, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_BACK: // aka select
+      emitKey(BTN_SELECT, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_GUIDE:
+      emitKey(BTN_MODE, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_START:
+      emitKey(BTN_START, is_pressed);
+      break;
+    case SDL_CONTROLLER_BUTTON_DPAD_UP:
+      emitAxisMotion(ABS_HAT0Y, is_pressed ? -1 : 0);
+      break;
+    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+      emitAxisMotion(ABS_HAT0Y, is_pressed ? 1 : 0);
+      break;
+    case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+      emitAxisMotion(ABS_HAT0X, is_pressed ? -1 : 0);
+      break;
+    case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+      emitAxisMotion(ABS_HAT0X, is_pressed ? 1 : 0);
+      break;
+  }
+}
+
+void pressButton(int code, int duration = 30) {
+  emitButton(code,true);
+  SDL_Delay(duration);
+  emitButton(code,false);  
 }
 
 void emitTextInputKey(int code, bool uppercase)
@@ -1351,6 +1395,7 @@ void processKeys()
   } //for
 }
 
+
 Uint32 repeatKeyCallback(Uint32 interval, void *param)
 {
     //timerCallback requires pointer parameter, but passing pointer to key_code for analog sticks doesn't work
@@ -1371,11 +1416,7 @@ void setKeyRepeat(int code, bool is_pressed)
     state.key_to_repeat=0;
   }
 }
-void emitAxisMotion(int code, int value)
-{
-  emit(EV_ABS, code, value);
-  emit(EV_SYN, SYN_REPORT, 0);
-}
+
 
 void emitMouseMotion(int x, int y)
 {
