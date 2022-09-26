@@ -1254,9 +1254,21 @@ void emitButton(int sdlCode, bool is_pressed)
 }
 
 void pressButton(int code, int duration = 30) {
-  emitButton(code,true);
+  SDL_Event event_pressed;
+  event_pressed.type = event_pressed.jbutton.type = SDL_JOYBUTTONDOWN;
+  event_pressed.jbutton.state = SDL_PRESSED;
+  event_pressed.jbutton.which = 0;
+  event_pressed.jbutton.button = code;
+  SDL_PushEvent(&event_pressed);
+  
   SDL_Delay(duration);
-  emitButton(code,false);  
+
+  SDL_Event event_released;
+  event_released.type = event_released.jbutton.type = SDL_JOYBUTTONUP;
+  event_released.jbutton.state = SDL_RELEASED;
+  event_released.jbutton.which = 0;
+  event_released.jbutton.button = code;
+  SDL_PushEvent(&event_released);
 }
 
 void emitTextInputKey(int code, bool uppercase)
