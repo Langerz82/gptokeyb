@@ -1184,9 +1184,9 @@ void emit(int type, int code, int val)
   write(uinp_fd, &ev, sizeof(ev));
 }
 
-void emitSDLEvent(Uint8 axis, Int16 value)
+void emitSDLEvent(Uint8 axis, Sint16 value)
 {
-    SDL_ControllerAxisEvent axisEvent;
+    SDL_Event axisEvent;
     axisEvent.type = SDL_CONTROLLERAXISMOTION;
     axisEvent.timestamp = SDL_GetTicks();
     axisEvent.which = 0;
@@ -1481,7 +1481,6 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
               emitSDLEvent(SDL_CONTROLLER_AXIS_LEFTY, SDL_JOYSTICK_AXIS_MAX);
               break;
           };
-          return;
         }
 
         if (state.textinputinteractive_mode_active) {
