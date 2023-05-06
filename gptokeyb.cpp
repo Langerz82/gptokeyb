@@ -1187,7 +1187,7 @@ void emit(int type, int code, int val)
 void emitSDLEvent(Uint8 axis, Sint16 value)
 {
     SDL_Event axisEvent;
-    axisEvent.caxis.type = SDL_CONTROLLERAXISMOTION;
+    axisEvent.type = axisEvent.caxis.type = SDL_CONTROLLERAXISMOTION;
     axisEvent.caxis.timestamp = SDL_GetTicks();
     axisEvent.caxis.which = 0;
     axisEvent.caxis.axis = axis;
