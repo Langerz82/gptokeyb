@@ -18,20 +18,20 @@
 * Authored by: Kris Henriksen <krishenriksen.work@gmail.com>
 #
 * AnberPorts-Keyboard-Mouse
-* 
+*
 * Part of the code is from from https://github.com/krishenriksen/AnberPorts/blob/master/AnberPorts-Keyboard-Mouse/main.c (mostly the fake keyboard)
 * Fake Xbox code from: https://github.com/Emanem/js2xbox
-* 
+*
 * Modified (badly) by: Shanti Gilbert for EmuELEC
 * Modified further by: Nikolai Wuttke for EmuELEC (Added support for SDL and the SDLGameControllerdb.txt)
-* 
-* Any help improving this code would be greatly appreciated! 
-* 
+*
+* Any help improving this code would be greatly appreciated!
+*
 * DONE: Xbox360 mode: Fix triggers so that they report from 0 to 255 like real Xbox triggers
 *       Xbox360 mode: Figure out why the axis are not correctly labeled?  SDL_CONTROLLER_AXIS_RIGHTX / SDL_CONTROLLER_AXIS_RIGHTY / SDL_CONTROLLER_AXIS_TRIGGERLEFT / SDL_CONTROLLER_AXIS_TRIGGERRIGHT
 *       Keyboard mode: Add a config file option to load mappings from.
 *       add L2/R2 triggers
-* 
+*
 * Spaghetti code incoming, beware :)
 */
 
@@ -92,7 +92,7 @@ std::vector<config_option> parseConfigFile(const char* path)
         result.pop_back();
         continue;
       }
-      
+
       perror("fscanf()");
       result.pop_back();
       continue;
@@ -107,11 +107,12 @@ struct uinput_user_dev uidev;
 
 int kill_signal = 15;
 bool kill_mode = false;
+bool dpad_mode = false;
 bool sudo_kill = false; //allow sudo kill instead of killall for non-emuelec systems
 bool pckill_mode = false; //emit alt+f4 to close apps on pc during kill mode, if env variable is set
 bool openbor_mode = false;
 bool xbox360_mode = false;
-bool textinputpreset_mode = false; 
+bool textinputpreset_mode = false;
 bool textinputinteractive_mode = false;
 bool textinputinteractive_noautocapitals = false;
 bool textinputinteractive_extrasymbols = false;
@@ -123,7 +124,7 @@ int maxKeys = maxKeysNoExtendedSymbols;
 const int maxChars = 20; // length of text in characters that can be entered
 int character_set[maxKeysWithSymbols]; // keys that can be selected in text input interactive mode
 bool character_set_shift[maxKeysWithSymbols]; // indicate which keys require shift
-int current_character = 0; 
+int current_character = 0;
 int current_key[maxChars]; // current key selected for each key
 char* AppToKill;
 bool config_mode = false;
@@ -281,9 +282,9 @@ struct
   int fake_mouse_scale = 512;
   int fake_mouse_delay = 16;
 
-  Uint32 key_repeat_interval = SDL_DEFAULT_REPEAT_INTERVAL * 2; 
-  Uint32 key_repeat_delay = SDL_DEFAULT_REPEAT_DELAY; 
-  
+  Uint32 key_repeat_interval = SDL_DEFAULT_REPEAT_INTERVAL * 2;
+  Uint32 key_repeat_delay = SDL_DEFAULT_REPEAT_DELAY;
+
   char* text_input_preset;
 } config;
 
@@ -353,7 +354,7 @@ short char_to_keycode(const char* str)
     keycode = KEY_PAUSE;
   else if (strcmp(str, "menu") == 0)
     keycode = KEY_MENU;
-    
+
   // normal keyboard
   else if (strcmp(str, "a") == 0)
     keycode = KEY_A;
@@ -525,7 +526,7 @@ short char_to_keycode(const char* str)
 void initialiseCharacters()
 {
   if (textinputinteractive_noautocapitals) {
-    current_key[0] = 26; // if environment variable has been set to disable capitalisation of first characters start with all lower case  
+    current_key[0] = 26; // if environment variable has been set to disable capitalisation of first characters start with all lower case
   } else {
     current_key[0] = 0; // otherwise start with upper case for 1st character
   }
@@ -598,7 +599,7 @@ void initialiseCharacterSet()
   character_set[29]=char_to_keycode("d");
   character_set_shift[29]=false;
   character_set[30]=char_to_keycode("e");
-  character_set_shift[30]=false;  
+  character_set_shift[30]=false;
   character_set[31]=char_to_keycode("f");
   character_set_shift[31]=false;
   character_set[32]=char_to_keycode("g");
@@ -655,82 +656,82 @@ void initialiseCharacterSet()
   character_set_shift[57]=false;
   character_set[58]=char_to_keycode("6");
   character_set_shift[58]=false;
-  character_set[59]=char_to_keycode("7"); 
+  character_set[59]=char_to_keycode("7");
   character_set_shift[59]=false;
-  character_set[60]=char_to_keycode("8"); 
+  character_set[60]=char_to_keycode("8");
   character_set_shift[60]=false;
-  character_set[61]=char_to_keycode("9"); 
+  character_set[61]=char_to_keycode("9");
   character_set_shift[61]=false;
-  character_set[62]=char_to_keycode("space"); 
+  character_set[62]=char_to_keycode("space");
   character_set_shift[62]=false;
-  character_set[63]=char_to_keycode("."); 
+  character_set[63]=char_to_keycode(".");
   character_set_shift[63]=false;
-  character_set[64]=char_to_keycode(","); 
+  character_set[64]=char_to_keycode(",");
   character_set_shift[64]=false;
-  character_set[65]=char_to_keycode("-"); 
+  character_set[65]=char_to_keycode("-");
   character_set_shift[65]=false;
-  character_set[66]=char_to_keycode("_"); 
+  character_set[66]=char_to_keycode("_");
   character_set_shift[66]=true;
-  character_set[67]=char_to_keycode("("); 
+  character_set[67]=char_to_keycode("(");
   character_set_shift[67]=true;
-  character_set[68]=char_to_keycode(")");  
+  character_set[68]=char_to_keycode(")");
   character_set_shift[68]=true;
 
   if (textinputinteractive_extrasymbols) {
     maxKeys = maxKeysWithSymbols;
-    character_set[69]=char_to_keycode("@");  
+    character_set[69]=char_to_keycode("@");
     character_set_shift[69]=true;
-    character_set[70]=char_to_keycode("#");  
+    character_set[70]=char_to_keycode("#");
     character_set_shift[70]=true;
-    character_set[71]=char_to_keycode("%");  
+    character_set[71]=char_to_keycode("%");
     character_set_shift[71]=true;
-    character_set[72]=char_to_keycode("&");  
+    character_set[72]=char_to_keycode("&");
     character_set_shift[72]=true;
-    character_set[73]=char_to_keycode("*");  
+    character_set[73]=char_to_keycode("*");
     character_set_shift[73]=true;
-    character_set[74]=char_to_keycode("-");  
+    character_set[74]=char_to_keycode("-");
     character_set_shift[74]=false;
-    character_set[75]=char_to_keycode("+");  
+    character_set[75]=char_to_keycode("+");
     character_set_shift[75]=true;
-    character_set[76]=char_to_keycode("!");  
+    character_set[76]=char_to_keycode("!");
     character_set_shift[76]=true;
-    character_set[77]=char_to_keycode("\"");  
+    character_set[77]=char_to_keycode("\"");
     character_set_shift[77]=true;
-    character_set[78]=char_to_keycode("\'");  
+    character_set[78]=char_to_keycode("\'");
     character_set_shift[78]=false;
-    character_set[79]=char_to_keycode(":");  
+    character_set[79]=char_to_keycode(":");
     character_set_shift[79]=true;
-    character_set[80]=char_to_keycode(";");  
+    character_set[80]=char_to_keycode(";");
     character_set_shift[80]=false;
-    character_set[81]=char_to_keycode("/");  
+    character_set[81]=char_to_keycode("/");
     character_set_shift[81]=false;
-    character_set[82]=char_to_keycode("?");  
+    character_set[82]=char_to_keycode("?");
     character_set_shift[82]=true;
-    character_set[83]=char_to_keycode("~");  
+    character_set[83]=char_to_keycode("~");
     character_set_shift[83]=true;
-    character_set[84]=char_to_keycode("`");  
+    character_set[84]=char_to_keycode("`");
     character_set_shift[84]=false;
-    character_set[85]=char_to_keycode("|");  
+    character_set[85]=char_to_keycode("|");
     character_set_shift[85]=true;
-    character_set[86]=char_to_keycode("{");  
+    character_set[86]=char_to_keycode("{");
     character_set_shift[86]=true;
-    character_set[87]=char_to_keycode("}");  
+    character_set[87]=char_to_keycode("}");
     character_set_shift[87]=true;
-    character_set[88]=char_to_keycode("$");  
+    character_set[88]=char_to_keycode("$");
     character_set_shift[88]=true;
-    character_set[89]=char_to_keycode("^");  
+    character_set[89]=char_to_keycode("^");
     character_set_shift[89]=true;
-    character_set[90]=char_to_keycode("=");  
+    character_set[90]=char_to_keycode("=");
     character_set_shift[90]=false;
-    character_set[91]=char_to_keycode("[");  
+    character_set[91]=char_to_keycode("[");
     character_set_shift[91]=false;
-    character_set[92]=char_to_keycode("]");  
+    character_set[92]=char_to_keycode("]");
     character_set_shift[92]=false;
-    character_set[93]=char_to_keycode("\\");  
+    character_set[93]=char_to_keycode("\\");
     character_set_shift[93]=false;
-    character_set[94]=char_to_keycode("<");  
+    character_set[94]=char_to_keycode("<");
     character_set_shift[94]=true;
-    character_set[95]=char_to_keycode(">");  
+    character_set[95]=char_to_keycode(">");
     character_set_shift[95]=true;
   }
   initialiseCharacters();
@@ -1142,7 +1143,7 @@ void readConfigFile(const char* config_file)
       config.key_repeat_delay = atoi(co.value);
     } else if (strcmp(co.key, "repeat_interval") == 0) {
       config.key_repeat_interval = atoi(co.value);
-    } 
+    }
   }
 }
 
@@ -1181,6 +1182,17 @@ void emit(int type, int code, int val)
   ev.time.tv_usec = 0;
 
   write(uinp_fd, &ev, sizeof(ev));
+}
+
+void emitSDLEvent(uint8 axis, int16 value)
+{
+    SDL_ControllerAxisEvent axisEvent;
+    axisEvent.type = SDL_CONTROLLERAXISMOTION;
+    axisEvent.timestamp = SDL_GetTicks();
+    axisEvent.which = 0;
+    axisEvent.axis = axis;
+    axisEvent.value = value;
+    SDL_PushEvent(&axisEvent);
 }
 
 void emitKey(int code, bool is_pressed, int modifier = 0)
@@ -1237,7 +1249,7 @@ void nextTextInputKey(bool SingleIncrease) // enable fast skipping if SingleIncr
   if (current_key[current_character] >= maxKeys) {
      current_key[current_character] = current_key[current_character] - maxKeys;
   } else if ((current_character == 0) && (character_set[current_key[current_character]] == KEY_SPACE)) {
-      current_key[current_character]++; //skip space as first character 
+      current_key[current_character]++; //skip space as first character
   }
 
   addTextInputCharacter(); //add new character
@@ -1249,7 +1261,7 @@ void prevTextInputKey(bool SingleDecrease)
   if (SingleDecrease) {
     current_key[current_character]--;
   } else {
-    current_key[current_character] = current_key[current_character] - 13; // jump back by half alphabet  
+    current_key[current_character] = current_key[current_character] - 13; // jump back by half alphabet
   }
   if (current_key[current_character] < 0) {
      current_key[current_character] = current_key[current_character] + maxKeys;
@@ -1261,7 +1273,7 @@ void prevTextInputKey(bool SingleDecrease)
 
 Uint32 repeatInputCallback(Uint32 interval, void *param)
 {
-    int key_code = *reinterpret_cast<int*>(param); 
+    int key_code = *reinterpret_cast<int*>(param);
     if (key_code == KEY_UP) {
       prevTextInputKey(true);
       interval = config.key_repeat_interval; // key repeats according to repeat interval
@@ -1295,17 +1307,17 @@ void processKeys()
   char lowerchar;
   char upperchar;
   bool uppercase = false;
-  for (int ii = 0; ii < lenText; ii++) {  
+  for (int ii = 0; ii < lenText; ii++) {
     if (config.text_input_preset[ii] != '\0') {
-        memcpy( str, &config.text_input_preset[ii], 1 );        
+        memcpy( str, &config.text_input_preset[ii], 1 );
         str[1] = '\0';
 
         lowerchar = std::tolower(config.text_input_preset[ii], std::locale());
         upperchar = std::toupper(config.text_input_preset[ii], std::locale());
 
-        memcpy( upperstr, &upperchar, 1 );        
+        memcpy( upperstr, &upperchar, 1 );
         upperstr[1] = '\0';
-        memcpy( lowerstr, &lowerchar, 1 );        
+        memcpy( lowerstr, &lowerchar, 1 );
         lowerstr[1] = '\0';
         uppercase = (strcmp(upperstr,str) == 0);
 
@@ -1327,7 +1339,7 @@ void processKeys()
             code = KEY_COMMA;
             uppercase = false;
         }
-        
+
         emitTextInputKey(code, uppercase);
     } // if valid character
   } //for
@@ -1336,9 +1348,9 @@ void processKeys()
 Uint32 repeatKeyCallback(Uint32 interval, void *param)
 {
     //timerCallback requires pointer parameter, but passing pointer to key_code for analog sticks doesn't work
-    int key_code = *reinterpret_cast<int*>(param); 
+    int key_code = *reinterpret_cast<int*>(param);
     emitKey(key_code, false);
-    emitKey(key_code, true); 
+    emitKey(key_code, true);
     interval = config.key_repeat_interval; // key repeats according to repeat interval; initial interval is set to delay
     return(interval);
 }
@@ -1454,6 +1466,24 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
     case SDL_CONTROLLERBUTTONUP: {
       const bool is_pressed = event.type == SDL_CONTROLLERBUTTONDOWN;
 
+        if (dpad_mode) {
+          switch (event.cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+              emitSDLEvent(SDL_CONTROLLER_AXIS_LEFTX, SDL_JOYSTICK_AXIS_MIN);
+              break;
+            case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+              emitSDLEvent(SDL_CONTROLLER_AXIS_LEFTX, SDL_JOYSTICK_AXIS_MAX);
+              break;
+            case SDL_CONTROLLER_BUTTON_DPAD_UP:
+              emitSDLEvent(SDL_CONTROLLER_AXIS_LEFTY, SDL_JOYSTICK_AXIS_MIN);
+              break;
+            case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+              emitSDLEvent(SDL_CONTROLLER_AXIS_LEFTY, SDL_JOYSTICK_AXIS_MAX);
+              break;
+          };
+          return;
+        }
+
         if (state.textinputinteractive_mode_active) {
         switch (event.cbutton.button) {
           case SDL_CONTROLLER_BUTTON_DPAD_LEFT: //move back one character
@@ -1468,7 +1498,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
               }
             }
             break; // SDL_CONTROLLER_BUTTON_DPAD_LEFT
-            
+
           case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: //add one more character
             if (is_pressed) {
               if ((character_set[current_key[current_character]] == KEY_SPACE) && (!(textinputinteractive_noautocapitals))) {
@@ -1485,38 +1515,38 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
               }
             }
             break; //SDL_CONTROLLER_BUTTON_DPAD_RIGHT
-            
+
           case SDL_CONTROLLER_BUTTON_DPAD_UP: //select previous key
             if (is_pressed) {
-                prevTextInputKey(true);  
-                setInputRepeat(KEY_UP, true);        
+                prevTextInputKey(true);
+                setInputRepeat(KEY_UP, true);
             } else {
                 setInputRepeat(KEY_UP, false);
             }
             break; //SDL_CONTROLLER_BUTTON_DPAD_UP
-            
+
           case SDL_CONTROLLER_BUTTON_DPAD_DOWN:  //select next key
             if (is_pressed) {
                 nextTextInputKey(true);
-                setInputRepeat(KEY_DOWN, true);        
+                setInputRepeat(KEY_DOWN, true);
             } else {
                 setInputRepeat(KEY_DOWN, false);
             }
             break; //SDL_CONTROLLER_BUTTON_DPAD_DOWN
-            
+
           case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: //jump back by 13 letters
             if (is_pressed) {
                 prevTextInputKey(false); //jump back by 13 letters
-                setInputRepeat(KEY_UP, false); //disable key repeat  
+                setInputRepeat(KEY_UP, false); //disable key repeat
             } else {
                 setInputRepeat(KEY_UP, false);
             }
             break; //SDL_CONTROLLER_BUTTON_LEFTSHOULDER
-            
+
           case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:  //jump forward by 13 letters
             if (is_pressed) {
                 nextTextInputKey(false); //jump forward by 13 letters
-                setInputRepeat(KEY_DOWN, false); //disable key repeat        
+                setInputRepeat(KEY_DOWN, false); //disable key repeat
             } else {
                 setInputRepeat(KEY_DOWN, false);
             }
@@ -1537,7 +1567,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
               for( int ii = 0; ii <= current_character; ii++ ) {
                 removeTextInputCharacter(); // delete all characters
                 if ((character_set[current_key[current_character]] == KEY_SPACE) && app_exult_adjust) {
-                  removeTextInputCharacter(); //remove extra spaces            
+                  removeTextInputCharacter(); //remove extra spaces
                 }
               }
               initialiseCharacters(); //reset the character selections ready for new text to be added later
@@ -1545,17 +1575,17 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
               printf("text input interactive mode no longer active\n");
             }
             break; //SDL_CONTROLLER_BUTTON_BACK
-            
+
           case SDL_CONTROLLER_BUTTON_START:
-            if (is_pressed) { 
+            if (is_pressed) {
               confirmTextInputCharacter(); // send ENTER key to confirm text entry
               //disable interactive mode
               state.textinputinteractive_mode_active = false;
               printf("text input interactive mode no longer active\n");
             }
             break; //SDL_CONTROLLER_BUTTON_START
-            
-          }   //switch (event.cbutton.button) for textinputinteractive_mode_active     
+
+          }   //switch (event.cbutton.button) for textinputinteractive_mode_active
       } else if (xbox360_mode) {
         // Fake Xbox360 mode
         switch (event.cbutton.button) {
@@ -1637,7 +1667,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             emitAxisMotion(ABS_HAT0X, is_pressed ? 1 : 0);
             break;
         }
-         if ((kill_mode) && (state.start_pressed && state.hotkey_pressed)) {      
+         if ((kill_mode) && (state.start_pressed && state.hotkey_pressed)) {
           if (pckill_mode) {
             emitKey(KEY_F4,true,KEY_LEFTALT);
             SDL_Delay(15);
@@ -1681,7 +1711,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             break;
 
           case SDL_CONTROLLER_BUTTON_DPAD_UP:
-            emitKey(config.up, is_pressed, config.up_modifier); 
+            emitKey(config.up, is_pressed, config.up_modifier);
             if ((config.up_repeat && is_pressed && (state.key_to_repeat == 0)) || (!(is_pressed) && (state.key_to_repeat == config.up))){
                 setKeyRepeat(config.up, is_pressed);
             }
@@ -1721,7 +1751,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.a_hk_was_pressed = false;
               }
             } else if (state.a_hk_was_pressed && !(is_pressed)) {
-              emitKey(config.a_hk, is_pressed, config.a_hk_modifier);              
+              emitKey(config.a_hk, is_pressed, config.a_hk_modifier);
               state.a_hk_was_pressed = false;
             } else {
               emitKey(config.a, is_pressed, config.a_modifier);
@@ -1741,7 +1771,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.b_hk_was_pressed = false;
               }
             } else if (state.b_hk_was_pressed && !(is_pressed)) {
-              emitKey(config.b_hk, is_pressed, config.b_hk_modifier);              
+              emitKey(config.b_hk, is_pressed, config.b_hk_modifier);
               state.b_hk_was_pressed = false;
             } else {
               emitKey(config.b, is_pressed, config.b_modifier);
@@ -1761,7 +1791,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.x_hk_was_pressed = false;
               }
             } else if (state.x_hk_was_pressed && !(is_pressed)) {
-              emitKey(config.x_hk, is_pressed, config.x_hk_modifier);              
+              emitKey(config.x_hk, is_pressed, config.x_hk_modifier);
               state.x_hk_was_pressed = false;
             } else {
               emitKey(config.x, is_pressed, config.x_modifier);
@@ -1781,7 +1811,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.y_hk_was_pressed = false;
               }
             } else if (state.y_hk_was_pressed && !(is_pressed)) {
-              emitKey(config.y_hk, is_pressed, config.y_hk_modifier);              
+              emitKey(config.y_hk, is_pressed, config.y_hk_modifier);
               state.y_hk_was_pressed = false;
             } else {
               emitKey(config.y, is_pressed, config.y_modifier);
@@ -1801,7 +1831,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.l1_hk_was_pressed = false;
               }
             } else if (state.l1_hk_was_pressed && !(is_pressed)) {
-              emitKey(config.l1_hk, is_pressed, config.l1_hk_modifier);              
+              emitKey(config.l1_hk, is_pressed, config.l1_hk_modifier);
               state.l1_hk_was_pressed = false;
             } else {
               emitKey(config.l1, is_pressed, config.l1_modifier);
@@ -1821,7 +1851,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.r1_hk_was_pressed = false;
               }
             } else if (state.r1_hk_was_pressed && !(is_pressed)) {
-              emitKey(config.r1_hk, is_pressed, config.r1_hk_modifier);              
+              emitKey(config.r1_hk, is_pressed, config.r1_hk_modifier);
               state.r1_hk_was_pressed = false;
             } else {
               emitKey(config.r1, is_pressed, config.r1_modifier);
@@ -1837,26 +1867,26 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.hotkey_pressed = is_pressed;
             } else if (hotkey_override && (strcmp(hotkey_code, "l3") == 0)) {
                 state.hotkey_jsdevice = event.cdevice.which;
-                state.hotkey_pressed = is_pressed;            
+                state.hotkey_pressed = is_pressed;
             }
             if (state.hotkey_pressed && (state.hotkey_jsdevice == event.cdevice.which)) {
               state.hotkey_was_pressed = true; // if hotkey is pressed, note the details of hotkey press in case it is released without triggering a hotkey combo event, since its press will need to be processed
-              
-            } else if (state.hotkey_combo_triggered && !(is_pressed)) { 
+
+            } else if (state.hotkey_combo_triggered && !(is_pressed)) {
               state.hotkey_combo_triggered = false; //hotkey combo was pressed; ignore hotkey button release
               state.hotkey_was_pressed = false; //reset hotkey
-            } else if (state.hotkey_was_pressed && !(is_pressed)) { 
+            } else if (state.hotkey_was_pressed && !(is_pressed)) {
               state.hotkey_was_pressed = false;
               emitKey(config.l3, true, config.l3_modifier); //key pressed and now released without hotkey trigger so process key press then key release
               SDL_Delay(16);
-              emitKey(config.l3, is_pressed, config.l3_modifier);            
+              emitKey(config.l3, is_pressed, config.l3_modifier);
               if ((config.l3_repeat && is_pressed && (state.key_to_repeat == 0)) || (!(is_pressed) && (state.key_to_repeat == config.l3))){
                 setKeyRepeat(config.l3, is_pressed);
                 //note: hotkey cannot be assigned for key repeat; release key repeat for completeness
               }
-            } //hotkey state check prior to emitting key, to avoid conflicts with emitkey and hotkey press        
+            } //hotkey state check prior to emitting key, to avoid conflicts with emitkey and hotkey press
               else {
-              emitKey(config.l3, is_pressed, config.l3_modifier);            
+              emitKey(config.l3, is_pressed, config.l3_modifier);
               if ((config.l3_repeat && is_pressed && (state.key_to_repeat == 0)) || (!(is_pressed) && (state.key_to_repeat == config.l3))){
                 setKeyRepeat(config.l3, is_pressed);
               }
@@ -1880,12 +1910,12 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             }
             if (state.hotkey_pressed && (state.hotkey_jsdevice == event.cdevice.which)) {
               state.hotkey_was_pressed = true; // if hotkey is pressed, note the details of hotkey press in case it is released without triggering a hotkey combo event, since its press will need to be processed
-              
-            } else if (state.hotkey_combo_triggered && !(is_pressed)) { 
+
+            } else if (state.hotkey_combo_triggered && !(is_pressed)) {
               state.hotkey_combo_triggered = false; //hotkey combo was pressed; ignore hotkey button release
               state.hotkey_was_pressed = false; //reset hotkey
-              
-            } else if (state.hotkey_was_pressed && !(is_pressed)) { 
+
+            } else if (state.hotkey_was_pressed && !(is_pressed)) {
               state.hotkey_was_pressed = false;
               emitKey(config.guide, true, config.guide_modifier); //key pressed and now released without hotkey trigger so process key press then key release
               SDL_Delay(16);
@@ -1894,7 +1924,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 setKeyRepeat(config.guide, is_pressed);
                 //note: hotkey cannot be assigned for key repeat; release key repeat for completeness
               }
-            } //hotkey state check prior to emitting key, to avoid conflicts with emitkey and hotkey press        
+            } //hotkey state check prior to emitting key, to avoid conflicts with emitkey and hotkey press
               else {
               emitKey(config.guide, is_pressed, config.guide_modifier);
               if ((config.guide_repeat && is_pressed && (state.key_to_repeat == 0)) || (!(is_pressed) && (state.key_to_repeat == config.guide))){
@@ -1915,12 +1945,12 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
         }
             if (state.hotkey_pressed && (state.hotkey_jsdevice == event.cdevice.which)) {
               state.hotkey_was_pressed = true; // if hotkey is pressed, note the details of hotkey press in case it is released without triggering a hotkey combo event, since its press will need to be processed
-              
-            } else if (state.hotkey_combo_triggered && !(is_pressed)) { 
+
+            } else if (state.hotkey_combo_triggered && !(is_pressed)) {
               state.hotkey_combo_triggered = false; //hotkey combo was pressed; ignore hotkey button release
               state.hotkey_was_pressed = false; //reset hotkey
-              
-            } else if (state.hotkey_was_pressed && !(is_pressed)) { 
+
+            } else if (state.hotkey_was_pressed && !(is_pressed)) {
               state.hotkey_was_pressed = false;
               emitKey(config.back, true, config.back_modifier); //key pressed and now released without hotkey trigger so process key press then key release
               SDL_Delay(16);
@@ -1929,7 +1959,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 setKeyRepeat(config.back, is_pressed);
                 //note: hotkey cannot be assigned for key repeat; release key repeat for completeness
               }
-            } //hotkey state check prior to emitting key, to avoid conflicts with emitkey and hotkey press        
+            } //hotkey state check prior to emitting key, to avoid conflicts with emitkey and hotkey press
             else {
               emitKey(config.back, is_pressed, config.back_modifier);
               if ((config.back_repeat && is_pressed && (state.key_to_repeat == 0)) || (!(is_pressed) && (state.key_to_repeat == config.back))){
@@ -1943,13 +1973,13 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 state.start_jsdevice = event.cdevice.which;
                 state.start_pressed = is_pressed;
             } // start pressed - ready for text input modes if trigger is also pressed
-            if (state.start_pressed && (state.start_jsdevice == event.cdevice.which)) { 
+            if (state.start_pressed && (state.start_jsdevice == event.cdevice.which)) {
               state.start_was_pressed = true; // if start as hotkey is pressed, note the details of start key press in case it is released without triggering a hotkey event, since its press will need to be processed
-              
-            } else if (state.start_combo_triggered && !(is_pressed)) { 
+
+            } else if (state.start_combo_triggered && !(is_pressed)) {
               state.start_combo_triggered = false; //ignore start key release if it acted as hotkey
               state.start_was_pressed = false; //reset hotkey
-              
+
             } else if (state.start_was_pressed && !(is_pressed)) { //key pressed and now released without start trigger so process original key press, pause, then process key release
               state.start_was_pressed = false;
               emitKey(config.start, true, config.start_modifier);
@@ -1995,7 +2025,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                exit(0);
              }
            } // sudo kill
-        } //kill mode 
+        } //kill mode
         else if ((textinputpreset_mode) && (state.textinputpresettrigger_pressed && state.start_pressed)) { //activate input preset mode - send predefined text as a series of keystrokes
             printf("text input preset pressed\n");
             state.start_combo_triggered = true;
@@ -2023,7 +2053,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             state.start_pressed = false;
             state.start_jsdevice = 0;
             state.textinputconfirmtrigger_jsdevice = 0;
-          } //input confirm trigger mode (i.e. not kill mode)         
+          } //input confirm trigger mode (i.e. not kill mode)
         else if ((textinputinteractive_mode) && (state.textinputinteractivetrigger_pressed && state.start_pressed)) { //activate interactive text input mode
             printf("text input interactive pressed\n");
             state.start_combo_triggered = true;
@@ -2048,7 +2078,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
         switch (event.caxis.axis) {
           case SDL_CONTROLLER_AXIS_LEFTX:
             emitAxisMotion(ABS_X, event.caxis.value);
-            break; 
+            break;
 
           case SDL_CONTROLLER_AXIS_LEFTY:
             emitAxisMotion(ABS_Y, event.caxis.value);
@@ -2077,7 +2107,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
         // indicate which axis was moved before checking whether it's assigned as mouse
         bool left_axis_movement = false;
         bool right_axis_movement = false;
-        
+
         switch (event.caxis.axis) {
           case SDL_CONTROLLER_AXIS_LEFTX:
             state.current_left_analog_x =
@@ -2210,7 +2240,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                 setKeyRepeat(config.right_analog_right, false);
             }
           } //!(state.textinputinteractive_mode_active)
-        } // Analogs trigger keys 
+        } // Analogs trigger keys
 
         if (state.hotkey_pressed) {
           handleAnalogTrigger(
@@ -2319,14 +2349,14 @@ int main(int argc, char* argv[])
   }
 
   for( int ii = 1; ii < argc; ii++ )
-  {      
+  {
     if (strcmp(argv[ii], "xbox360") == 0) {
       xbox360_mode = true;
     } else if (strcmp(argv[ii], "textinput") == 0) {
       textinputinteractive_mode = true;
       state.textinputinteractive_mode_active = false;
     } else if (strcmp(argv[ii], "-c") == 0) {
-      if (ii + 1 < argc) { 
+      if (ii + 1 < argc) {
         config_mode = true;
         config_file = argv[++ii];
       } else {
@@ -2339,25 +2369,27 @@ int main(int argc, char* argv[])
         hotkey_code = argv[++ii];
       }
     } else if ((strcmp(argv[ii], "1") == 0) || (strcmp(argv[ii], "-1") == 0) || (strcmp(argv[ii], "-k") == 0)) {
-      if (ii + 1 < argc) { 
+      if (ii + 1 < argc) {
         kill_mode = true;
         AppToKill = argv[++ii];
       }
     } else if ((strcmp(argv[ii], "-sudokill") == 0)) {
-      if (ii + 1 < argc) { 
+      if (ii + 1 < argc) {
         kill_mode = true;
         sudo_kill = true;
         AppToKill = argv[++ii];
         if (strcmp(AppToKill, "exult") == 0) { // special adjustment for Exult, which adds double spaces during text input
           app_exult_adjust = true;
         }
-      } 
+      }
     } else if (strcmp(argv[ii], "-killsignal") == 0) {
-        if (ii + 1 < argc) { 
+        if (ii + 1 < argc) {
           kill_mode = true;
           kill_signal = atoi(argv[++ii]);
         }
         std::cout << "kill_signal: " << kill_signal << std::endl;
+    } else if (strcmp(argv[ii], "-dpad") == 0) {
+        dpad_mode = true;
     }
   }
 
@@ -2372,12 +2404,12 @@ int main(int argc, char* argv[])
       if (strcmp(env_textinput_extrasymbols,"Y") == 0) {
         textinputinteractive_extrasymbols = true;
       }
-    }    
+    }
   }
 
 
   // Create fake input device (not needed in kill mode)
-  //if (!kill_mode) {  
+  //if (!kill_mode) {
   if (config_mode || xbox360_mode || textinputinteractive_mode) { // initialise device, even in kill mode, now that kill mode will work with config & xbox modes
     uinp_fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
     if (uinp_fd < 0) {
@@ -2410,7 +2442,7 @@ int main(int argc, char* argv[])
             printf("text input preset is not set\n");
             //textinputpreset_mode = false;   removed so that Enter key can be pressed
         }
-      } 
+      }
     }
             // if we are in textinputinteractive mode, initialise the character set
     if (textinputinteractive_mode) {
@@ -2418,7 +2450,7 @@ int main(int argc, char* argv[])
         printf("interactive text input mode available\n");
         if (textinputinteractive_noautocapitals) printf("interactive text input mode without auto-capitals\n");
         if (textinputinteractive_extrasymbols) printf("interactive text input mode includes extra symbols\n");
-    
+
     }
     // Create input device into input sub-system
     write(uinp_fd, &uidev, sizeof(uidev));
