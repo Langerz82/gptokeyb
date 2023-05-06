@@ -1184,7 +1184,7 @@ void emit(int type, int code, int val)
   write(uinp_fd, &ev, sizeof(ev));
 }
 
-void emitSDLEvent(uint8 axis, int16 value)
+void emitSDLEvent(Uint8 axis, Int16 value)
 {
     SDL_ControllerAxisEvent axisEvent;
     axisEvent.type = SDL_CONTROLLERAXISMOTION;
