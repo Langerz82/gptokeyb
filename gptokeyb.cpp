@@ -108,6 +108,7 @@ struct uinput_user_dev uidev;
 int kill_signal = 15;
 bool kill_mode = false;
 bool sudo_kill = false; //allow sudo kill instead of killall for non-emuelec systems
+bool is_keypress = false; // allow hotkey+key to simulate keyboard press
 bool pckill_mode = false; //emit alt+f4 to close apps on pc during kill mode, if env variable is set
 bool openbor_mode = false;
 bool xbox360_mode = false;
@@ -129,6 +130,8 @@ char* AppToKill;
 bool config_mode = false;
 bool hotkey_override = false;
 char* hotkey_code;
+char* key_press;
+char* keyboard_press;
 
 struct
 {
@@ -1519,6 +1522,19 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
              }
            } // sudo kill
         } //kill mode
+        if (is_keypress) {
+          if (state.a_hk_was_pressed && key_press == "a" ||
+              state.b_hk_was_pressed && key_press == "b" ||
+              state.x_hk_was_pressed && key_press == "x" ||
+              state.y_hk_was_pressed && key_press == "y" ||
+              state.l1_hk_was_pressed && key_press == "l1" ||
+              state.l2_hk_was_pressed && key_press == "l2" ||
+              state.r1_hk_was_pressed && key_press == "r1" ||
+              state.r2_hk_was_pressed && key_press == "r2")
+          {
+            emitKey(char_to_keycode(keyboard_press),true,0);
+          }
+        }
       // xbox360 mode
       } else { //config mode (i.e. not textinputinteractive_mode_active)
         switch (event.cbutton.button) {
@@ -1849,7 +1865,20 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
                exit(0);
              }
            } // sudo kill
-        } //kill mode 
+        } //kill mode
+        else if (is_keypress) {
+          if (state.a_hk_was_pressed && key_press == "a" ||
+              state.b_hk_was_pressed && key_press == "b" ||
+              state.x_hk_was_pressed && key_press == "x" ||
+              state.y_hk_was_pressed && key_press == "y" ||
+              state.l1_hk_was_pressed && key_press == "l1" ||
+              state.l2_hk_was_pressed && key_press == "l2" ||
+              state.r1_hk_was_pressed && key_press == "r1" ||
+              state.r2_hk_was_pressed && key_press == "r2")
+          {
+            emitKey(char_to_keycode(keyboard_press),true,0);
+          }
+        }
         else if ((textinputpreset_mode) && (state.textinputpresettrigger_pressed && state.start_pressed)) { //activate input preset mode - send predefined text as a series of keystrokes
             printf("text input preset pressed\n");
             state.start_combo_triggered = true;
@@ -2212,6 +2241,14 @@ int main(int argc, char* argv[])
           kill_signal = atoi(argv[++ii]);
         }
         std::cout << "kill_signal: " << kill_signal << std::endl;
+    } else if (strcmp(argv[ii], "--keypress") == 0) {
+        if (ii + 2 < argc) {
+          is_keypress = true;
+          key_press = argv[++ii];
+          keyboard_press = argv[++ii];
+        }
+        std::cout << "keypress: " << keypress << std::endl;
+        std::cout << "keyboard_press: " << keyboard_press << std::endl;
     }
   }
 
