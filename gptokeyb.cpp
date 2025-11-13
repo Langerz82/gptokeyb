@@ -1520,7 +1520,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             (state.r1_was_pressed && strcmp(btntokeyb_btn,"r1")==0) ||
             (state.r2_was_pressed && strcmp(btntokeyb_btn,"r2")==0))
           {
-            //std::cout << "emitKey: " << btntokeyb_btn << " " << btntokeyb_keyb << std::endl;
+            std::cout << "emitKey: " << btntokeyb_btn << " " << btntokeyb_keyb << std::endl;
             emitKey(char_to_keycode(btntokeyb_keyb),true,0);
           }
         }
@@ -1864,7 +1864,7 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
             (state.r1_was_pressed && strcmp(btntokeyb_btn,"r1")==0) ||
             (state.r2_was_pressed && strcmp(btntokeyb_btn,"r2")==0))
           {
-            //std::cout << "emitKey: " << btntokeyb_btn << " " << btntokeyb_keyb << std::endl;
+            std::cout << "emitKey: " << btntokeyb_btn << " " << btntokeyb_keyb << std::endl;
             emitKey(char_to_keycode(btntokeyb_keyb),true,0);
           }
         }
