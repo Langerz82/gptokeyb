@@ -1877,6 +1877,8 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
           {
             std::cout << "emitKey: " << btntokeyb_btn << " " << btntokeyb_keyb << std::endl;
             emitKey(char_to_keycode(btntokeyb_keyb),true,0);
+            SDL_Delay(15);
+            emitKey(char_to_keycode(btntokeyb_keyb),false,0);            
           }
         }
 
