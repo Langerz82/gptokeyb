@@ -2219,6 +2219,7 @@ int main(int argc, char* argv[])
       }
     } else if ((strcmp(argv[ii], "-customkill") == 0)) {
       if (ii + 1 < argc) {
+        kill_mode = true;
         std::string nextArg = argv[ii+1];
         if (nextArg.length() > 1 && nextArg.front() == '"' && nextArg.back() == '"') {
           customKill = (char*) nextArg.substr(1, nextArg.length() - 2).c_str();
