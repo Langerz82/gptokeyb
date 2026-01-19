@@ -126,6 +126,7 @@ bool character_set_shift[maxKeysWithSymbols]; // indicate which keys require shi
 int current_character = 0; 
 int current_key[maxChars]; // current key selected for each key
 char* AppToKill;
+char* customKill;
 bool config_mode = false;
 bool hotkey_override = false;
 char* hotkey_code;
@@ -1513,7 +1514,12 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
              }
           } else {
              if (state.start_jsdevice == state.hotkey_jsdevice) {
-               system((" kill -9 $(pidof '" + std::string(AppToKill) + "') ").c_str());
+               if (std::strlen(customKill) > 0) {
+                system(customKill);
+               }
+               else {
+                 system((" kill -9 $(pidof '" + std::string(AppToKill) + "') ").c_str());
+               }
                sleep(3);
                exit(0);
              }
@@ -1844,7 +1850,12 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
              }
           } else {
              if (state.start_jsdevice == state.hotkey_jsdevice) {
-               system((" kill -9 $(pidof '" + std::string(AppToKill) + "') ").c_str());
+               if (std::strlen(customKill) > 0) {
+                system(customKill);
+               }
+               else {
+                 system((" kill -9 $(pidof '" + std::string(AppToKill) + "') ").c_str());
+               }
                sleep(3);
                exit(0);
              }
@@ -2205,7 +2216,20 @@ int main(int argc, char* argv[])
         if (strcmp(AppToKill, "exult") == 0) { // special adjustment for Exult, which adds double spaces during text input
           app_exult_adjust = true;
         }
-      } 
+      }
+    } else if ((strcmp(argv[ii], "-customkill") == 0)) {
+      if (ii + 1 < argc) {
+        std::string nextArg = argv[ii+1];
+        if (nextArg.length() > 1 && nextArg.front() == '"' && nextArg.back() == '"') {
+          customKill = nextArg.substr(1, nextArg.length() - 2).c_str();
+        } else {
+          if (nextArg.length() > 0) {
+              customKill = nextArg.c_str();
+          }
+        }
+        std::cout << "Found direct custom kill value: " << customKill << std::endl;
+        ii++;
+      }
     } else if (strcmp(argv[ii], "-killsignal") == 0) {
         if (ii + 1 < argc) { 
           kill_mode = true;
