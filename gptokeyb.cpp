@@ -1515,11 +1515,11 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
           } else {
              if (state.start_jsdevice == state.hotkey_jsdevice) {
                if (customKill.length() > 0) {
-                 printf("customKill: %s\n", customKill.c_str());
+                 //printf("customKill: %s\n", customKill.c_str());
                  system((customKill + "\n").c_str());
                }
                else {
-                 printf("kill -9: %s\n", AppToKill);
+                 //printf("kill -9: %s\n", AppToKill);
                  system((" kill -9 $(pidof '" + std::string(AppToKill) + "') ").c_str());
                }
                sleep(3);
@@ -1853,11 +1853,11 @@ SDL_GameController* controller = SDL_GameControllerFromInstanceID(event.cdevice.
         } else {
             if (state.start_jsdevice == state.hotkey_jsdevice) {
               if (customKill.length() > 0) {
-                printf("customKill: %s\n", customKill.c_str());
+                //printf("customKill: %s\n", customKill.c_str());
                 system((customKill + "\n").c_str());
               }
               else {
-                printf("kill -9: %s\n", AppToKill);
+                //printf("kill -9: %s\n", AppToKill);
                 system((" kill -9 $(pidof '" + std::string(AppToKill) + "') ").c_str());
               }
               sleep(3);
@@ -2233,7 +2233,7 @@ int main(int argc, char* argv[])
               customKill = nextArg;
           }
         }
-        std::cout << "Found direct custom kill value: " << customKill << std::endl;
+        //std::cout << "Found direct custom kill value: " << customKill.c_str() << std::endl;
         ii++;
       }
     } else if (strcmp(argv[ii], "-killsignal") == 0) {
